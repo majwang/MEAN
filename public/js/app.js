@@ -86,7 +86,7 @@ angular.module("contactsApp", ['ngRoute'])
                     alert("Error finding users.");
                 });
         }
-        this.createContact = function(contact) {
+        this.createContact = function(user) {
             return $http.post("/users", user).
                 then(function(response) {
                     return response;
