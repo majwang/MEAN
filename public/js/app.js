@@ -8,11 +8,18 @@ angular.module("contactsApp", ['ngRoute'])
                     contacts: function(Contacts) {
                         return Contacts.getContacts();
                     }
+					users: function(Users) {
+                        return Users.getContacts();
+                    }
                 }
             })
             .when("/new/contact", {
                 controller: "NewContactController",
                 templateUrl: "contact-form.html"
+            })
+			.when("/new/user", {
+                controller: "NewUserController",
+                templateUrl: "user-form.html"
             })
             .when("/contact/:contactId", {
                 controller: "EditContactController",
@@ -70,8 +77,27 @@ angular.module("contactsApp", ['ngRoute'])
                 });
         }
     })
-    .controller("ListController", function(contacts, $scope) {
+	.service("Users", function($http) {
+        this.getContacts = function() {
+            return $http.get("/users").
+                then(function(response) {
+                    return response;
+                }, function(response) {
+                    alert("Error finding users.");
+                });
+        }
+        this.createContact = function(contact) {
+            return $http.post("/users", user).
+                then(function(response) {
+                    return response;
+                }, function(response) {
+                    alert("Error creating user.");
+                });
+        }
+    })
+    .controller("ListController", function(contacts, users, $scope) {
         $scope.contacts = contacts.data;
+		$scope.users = users.data;
     })
     .controller("NewContactController", function($scope, $location, Contacts) {
         $scope.back = function() {
@@ -82,6 +108,20 @@ angular.module("contactsApp", ['ngRoute'])
             Contacts.createContact(contact).then(function(doc) {
                 var contactUrl = "/contact/" + doc.data._id;
                 $location.path(contactUrl);
+            }, function(response) {
+                alert(response);
+            });
+        }
+    })
+	.controller("NewUserController", function($scope, $location, Users) {
+        $scope.back = function() {
+            $location.path("#/");
+        }
+
+        $scope.saveContact = function(user) {
+            Contacts.createContact(user).then(function(doc) {
+                var userUrl = "/user/" + doc.data._id;
+                $location.path(userUrl);
             }, function(response) {
                 alert(response);
             });
