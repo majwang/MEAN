@@ -7,7 +7,7 @@ angular.module("contactsApp", ['ngRoute'])
                 resolve: {
                     contacts: function(Contacts) {
                         return Contacts.getContacts();
-                    }
+                    },
 					users: function(Users) {
                         return Users.getContacts();
                     }
