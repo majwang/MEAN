@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html ng-app="meanApp">
+<head>
+  <title>MEAN stack authentication example</title>
+  <base href="/">
+  <!--<link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap-theme.min.css"> -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body ng-view>
+
+
+  <script src="lib/angular/angular.min.js"></script>
+  <script src="lib/angular/angular-route.min.js"></script>
+  <script src="app.min.js"></script>
+
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <div class="navbar-brand" href="#/">Mean Stack</div>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#/">Home</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- Dynamically render templates -->
+    <div class="container" ng-view>
+    </div>
+
+</body>
+</html>

@@ -1,130 +1,119 @@
-var express = require("express");
-var path = require("path");
-var bodyParser = require("body-parser");
-var mongodb = require("mongodb");
-var passport = require('passport');
-var flash    = require('connect-flash');
-var morgan       = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser   = require('body-parser');
-var session      = require('express-session');
-var ObjectID = mongodb.ObjectID;
-var CONTACTS_COLLECTION = "contacts";
-var USERS_COLLECTION = "users";
-var app = express();
-app.use(express.static(__dirname + "/public"));
+var express     = require('express');
+var app         = express();
+var bodyParser  = require('body-parser');
+var morgan      = require('morgan');
+var mongoose    = require('mongoose');
+var passport  = require('passport');
+var config      = require('./config/database'); // get db config file
+var User        = require('./app/models/user'); // get the mongoose model
+var port        = process.env.PORT || 8080;
+var jwt         = require('jwt-simple');
+ 
+// get our request parameters
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// Connect to the database before starting the application server.
-var mongoose = require('mongoose');
-mongoose.connect(process.env.MONGODB_URI);
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function() {
-  // we're connected!
-});
-
-var server = app.listen(process.env.PORT || 8080, function () {
-    var port = server.address().port;
-    console.log("App now running on port", port);
- });
  
-// Generic error handler used by all endpoints.
-function handleError(res, reason, message, code) {
-  console.log("ERROR: " + reason);
-  res.status(code || 500).json({"error": message});
-}
+// log to console
+app.use(morgan('dev'));
  
- app.get("/contacts", function(req, res) {
-  db.collection(CONTACTS_COLLECTION).find({}).toArray(function(err, docs) {
-    if (err) {
-      handleError(res, err.message, "Failed to get contacts.");
-    } else {
-      res.status(200).json(docs);
-    }
-  });
+// Use the passport package in our application
+app.use(passport.initialize());
+ 
+// demo Route (GET http://localhost:8080)
+app.get('/', function(req, res) {
+  res.send('Hello! The API is at http://localhost:' + port + '/api');
 });
 
-app.post("/contacts", function(req, res) {
-  var newContact = req.body;
-  newContact.createDate = new Date();
-
-  if (!(req.body.firstName || req.body.lastName)) {
-    handleError(res, "Invalid user input", "Must provide a first or last name.", 400);
+// connect to database
+mongoose.connect(config.database);
+ 
+// pass passport for configuration
+require('./config/passport')(passport);
+ 
+// bundle our routes
+var apiRoutes = express.Router();
+ 
+// create a new user account (POST http://localhost:8080/api/signup)
+apiRoutes.post('/signup', function(req, res) {
+  if (!req.body.name || !req.body.password) {
+    res.json({success: false, msg: 'Please pass name and password.'});
+  } else {
+    var newUser = new User({
+      name: req.body.name,
+      password: req.body.password
+    });
+    // save the user
+    newUser.save(function(err) {
+      if (err) {
+        return res.json({success: false, msg: 'Username already exists.'});
+      }
+      res.json({success: true, msg: 'Successful created new user.'});
+    });
   }
+});
+ 
+// connect the api routes under /api/*
+app.use('/api', apiRoutes);
 
-  db.collection(CONTACTS_COLLECTION).insertOne(newContact, function(err, doc) {
-    if (err) {
-      handleError(res, err.message, "Failed to create new contact.");
+// route to authenticate a user (POST http://localhost:8080/api/authenticate)
+apiRoutes.post('/authenticate', function(req, res) {
+  User.findOne({
+    name: req.body.name
+  }, function(err, user) {
+    if (err) throw err;
+ 
+    if (!user) {
+      res.send({success: false, msg: 'Authentication failed. User not found.'});
     } else {
-      res.status(201).json(doc.ops[0]);
+      // check if password matches
+      user.comparePassword(req.body.password, function (err, isMatch) {
+        if (isMatch && !err) {
+          // if user is found and password is right create a token
+          var token = jwt.encode(user, config.secret);
+          // return the information including token as JSON
+          res.json({success: true, token: 'JWT ' + token});
+        } else {
+          res.send({success: false, msg: 'Authentication failed. Wrong password.'});
+        }
+      });
     }
   });
 });
-/* "/users"
-GET
-POST
-*/
-app.get("/users", function(req, res) {
-  db.collection(USERS_COLLECTION).find({}).toArray(function(err, docs) {
-    if (err) {
-      handleError(res, err.message, "Failed to get users.");
-    } else {
-      res.status(200).json(docs);
-    }
-  });
-});
-app.post("/users", function(req, res) {
-  var newUser = req.body;
-  newUser.createDate = new Date();
 
-  if (!(req.body.firstName || req.body.lastName)) {
-    handleError(res, "Invalid user input", "Must provide a first or last name.", 400);
+// route to a restricted info (GET http://localhost:8080/api/memberinfo)
+apiRoutes.get('/memberinfo', passport.authenticate('jwt', { session: false}), function(req, res) {
+  var token = getToken(req.headers);
+  if (token) {
+    var decoded = jwt.decode(token, config.secret);
+    User.findOne({
+      name: decoded.name
+    }, function(err, user) {
+        if (err) throw err;
+ 
+        if (!user) {
+          return res.status(403).send({success: false, msg: 'Authentication failed. User not found.'});
+        } else {
+          res.json({success: true, msg: 'Welcome in the member area ' + user.name + '!'});
+        }
+    });
+  } else {
+    return res.status(403).send({success: false, msg: 'No token provided.'});
   }
-
-  db.collection(USERS_COLLECTION).insertOne(newUser, function(err, doc) {
-    if (err) {
-      handleError(res, err.message, "Failed to create new user.");
-    } else {
-      res.status(201).json(doc.ops[0]);
-    }
-  });
 });
-/*  "/contacts/:id"
- *    GET: find contact by id
- *    PUT: update contact by id
- *    DELETE: deletes contact by id
- */
-
-app.get("/contacts/:id", function(req, res) {
-  db.collection(CONTACTS_COLLECTION).findOne({ _id: new ObjectID(req.params.id) }, function(err, doc) {
-    if (err) {
-      handleError(res, err.message, "Failed to get contact");
+ 
+function getToken (headers) {
+  if (headers && headers.authorization) {
+    var parted = headers.authorization.split(' ');
+    if (parted.length === 2) {
+      return parted[1];
     } else {
-      res.status(200).json(doc);
+      return null;
     }
-  });
-});
-
-app.put("/contacts/:id", function(req, res) {
-  var updateDoc = req.body;
-  delete updateDoc._id;
-
-  db.collection(CONTACTS_COLLECTION).updateOne({_id: new ObjectID(req.params.id)}, updateDoc, function(err, doc) {
-    if (err) {
-      handleError(res, err.message, "Failed to update contact");
-    } else {
-      res.status(204).end();
-    }
-  });
-});
-
-app.delete("/contacts/:id", function(req, res) {
-  db.collection(CONTACTS_COLLECTION).deleteOne({_id: new ObjectID(req.params.id)}, function(err, result) {
-    if (err) {
-      handleError(res, err.message, "Failed to delete contact");
-    } else {
-      res.status(204).end();
-    }
-  });
-});
+  } else {
+    return null;
+  }
+};
+ 
+// Start the server
+app.listen(port);
+console.log('There will be dragons: http://localhost:' + port);
