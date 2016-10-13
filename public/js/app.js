@@ -1,16 +1,14 @@
-angular.module("contactsApp", ['ngRoute'])
+
+angular.module('app', ['ngRoute'])
     .config(function($routeProvider) {
         $routeProvider
             .when("/", {
-                templateUrl: "list.html",
+                templateUrl: "index.html",
                 controller: "ListController",
                 resolve: {
                     contacts: function(Contacts) {
                         return Contacts.getContacts();
                     },
-					users: function(Users) {
-                        return Users.getContacts();
-                    }
                 }
             })
             .when("/new/contact", {
@@ -95,9 +93,8 @@ angular.module("contactsApp", ['ngRoute'])
                 });
         }
     })
-    .controller("ListController", function(contacts, users, $scope) {
+    .controller("ListController", function(contacts, $scope) {
         $scope.contacts = contacts.data;
-		$scope.users = users.data;
     })
     .controller("NewContactController", function($scope, $location, Contacts) {
         $scope.back = function() {
@@ -132,7 +129,7 @@ angular.module("contactsApp", ['ngRoute'])
             $scope.contact = doc.data;
         }, function(response) {
             alert(response);
-        });
+        })
 
         $scope.toggleEdit = function() {
             $scope.editMode = true;

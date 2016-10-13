@@ -8,7 +8,7 @@ var config      = require('./config/database'); // get db config file
 var User        = require('./app/models/user'); // get the mongoose model
 var port        = process.env.PORT || 8080;
 var jwt         = require('jwt-simple');
- 
+ var path = require("path");
 // get our request parameters
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -18,13 +18,17 @@ app.use(morgan('dev'));
  
 // Use the passport package in our application
 app.use(passport.initialize());
- 
+app.use(express.static(__dirname + "/public"));
+/*
+var serveStatic = require('serve-static');
+app.use(serveStatic(__dirname, {'index': ['public/index.html']}))
+*/
 // demo Route (GET http://localhost:8080)
-app.get('/', function(req, res) {
-  res.send('Hello! The API is at http://localhost:' + port + '/api');
-});
+//app.get('/', function(req, res) {
+//  res.send('Hello! The API is at http://localhost:' + port + '/api');
+//});
 
-// connect to database
+// connect to database process.env.MONGODB_URI
 mongoose.connect(config.database);
  
 // pass passport for configuration
