@@ -117,7 +117,7 @@ apiRoutes.delete('/contacts/:id', function(req, res) {
 apiRoutes.post('/signup', function(req, res) {
   if (!req.body.name || !req.body.password) {
     res.json({success: false, msg: 'Please pass name and password.'});
-	console.log("HERE");
+	console.log("HERE" + req.body.name);
   } else {
     var newUser = new User({
       name: req.body.name,

@@ -90,7 +90,7 @@ angular.module('app', ['ngRoute'])
 	  notAuthenticated: 'auth-not-authenticated'
 	})
 	.service('AuthService', function($q, $http) {
-	  var LOCAL_TOKEN_KEY = 'yourTokenKey';
+	  var LOCAL_TOKEN_KEY = 'devdacticIsAwesome';
 	  var isAuthenticated = false;
 	  var authToken;
 	 
@@ -104,6 +104,7 @@ angular.module('app', ['ngRoute'])
 	  function storeUserCredentials(token) {
 		window.localStorage.setItem(LOCAL_TOKEN_KEY, token);
 		useCredentials(token);
+		console.log(token);
 	  }
 	 
 	  function useCredentials(token) {
@@ -190,13 +191,17 @@ angular.module('app', ['ngRoute'])
         }
     })
 	.controller("registerController", function($scope, $location, AuthService) {
+		$scope.user = {
+			name: '',
+			password: ''
+		};
         $scope.signup = function () {
 
 			AuthService.register($scope.user)
 			.then(function(msg) {
 			  $location.path("/");
 			}, function(errMsg) {
-			  $scope.errorMessage = "Invalid username and/or password";
+			  console.log(errMsg);
 			});
 
 		};
