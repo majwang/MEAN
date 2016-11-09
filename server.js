@@ -8,17 +8,22 @@ var config      = require('./config/database'); // get db config file
 var User        = require('./app/models/user'); // get the mongoose model
 var port        = process.env.PORT || 8080;
 var jwt         = require('jwt-simple');
- var path = require("path");
-// get our request parameters
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+var Contact = require('./app/models/contact');
+var path = require("path");
+var ObjectID = mongoose.ObjectID;
  
 // log to console
 app.use(morgan('dev'));
  
 // Use the passport package in our application
 app.use(passport.initialize());
-app.use(express.static(__dirname + "/public"));
+
+app.use(express.static(__dirname + '/public'));
+// get our request parameters
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+
 /*
 var serveStatic = require('serve-static');
 app.use(serveStatic(__dirname, {'index': ['public/index.html']}))
@@ -27,25 +32,98 @@ app.use(serveStatic(__dirname, {'index': ['public/index.html']}))
 //app.get('/', function(req, res) {
 //  res.send('Hello! The API is at http://localhost:' + port + '/api');
 //});
-
+var db;
 // connect to database process.env.MONGODB_URI
-mongoose.connect(config.database);
- 
+mongoose.connect(process.env.MONGODB_URI);
+mongoose.connection.on('connected', function(err, database) {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
+  db = database;
+  console.log('Mongoose connected to ' + process.env.MONGODB_URI);
+});
 // pass passport for configuration
 require('./config/passport')(passport);
  
 // bundle our routes
 var apiRoutes = express.Router();
- 
+app.use(apiRoutes);
+apiRoutes.get('/contacts', function(req, res) {
+	Contact.find({}, function (err, contacts) {
+	  if (err) return console.log(err);
+	  else{
+		//console.log(contacts);
+		res.json(contacts);
+	  }
+	});
+	
+}); 
+
+apiRoutes.post('/contacts', function(req, res) {
+	var contact = new Contact();
+	contact.firstName = req.body.firstName;
+	contact.lastName = req.body.lastName;
+	contact.email = req.body.email;
+	contact.save(function(err, contact){
+		if(err) {return console.log(err);}
+		else{
+			res.json(contact);
+		}
+	});
+});
+
+apiRoutes.get('/contacts/:id', function(req, res) {
+	//console.log("ID: " + req.params.id);
+	Contact.findOne({'_id' : req.params.id}, function (err, contact) {
+	  if (err) return console.log(err);
+	  else{
+		//console.log(contact);
+		res.json(contact);
+	  }
+	});
+	
+}); 
+
+apiRoutes.put('/contacts/:id', function(req, res) {
+	//console.log("ID: " + req.params.id);
+	var contact = {
+		firstName : req.body.firstName,
+		lastName : req.body.lastName,
+		email : req.body.email
+	};
+	Contact.update({'_id' : req.params.id}, contact, function (err, contact) {
+	  if (err) return console.log(err);
+	  else{
+		//console.log(contact);
+		res.end();
+	  }
+	});
+	
+}); 
+
+apiRoutes.delete('/contacts/:id', function(req, res) {
+	//console.log("ID: " + req.params.id);
+	Contact.deleteOne({'_id' : req.params.id}, function (err, contact) {
+	  if (err) return console.log(err);
+	  else{
+		//console.log(contact);
+		res.end();
+	  }
+	});
+	
+}); 
 // create a new user account (POST http://localhost:8080/api/signup)
 apiRoutes.post('/signup', function(req, res) {
   if (!req.body.name || !req.body.password) {
     res.json({success: false, msg: 'Please pass name and password.'});
+	console.log("HERE");
   } else {
     var newUser = new User({
       name: req.body.name,
       password: req.body.password
     });
+	console.log(newUser);
     // save the user
     newUser.save(function(err) {
       if (err) {
@@ -57,7 +135,7 @@ apiRoutes.post('/signup', function(req, res) {
 });
  
 // connect the api routes under /api/*
-app.use('/api', apiRoutes);
+//app.use('/api', apiRoutes);
 
 // route to authenticate a user (POST http://localhost:8080/api/authenticate)
 apiRoutes.post('/authenticate', function(req, res) {

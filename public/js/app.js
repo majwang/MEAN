@@ -3,25 +3,33 @@ angular.module('app', ['ngRoute'])
     .config(function($routeProvider) {
         $routeProvider
             .when("/", {
-                templateUrl: "index.html",
+                templateUrl: "list.html",
                 controller: "ListController",
-                resolve: {
+				resolve: {
                     contacts: function(Contacts) {
+						//console.log("CONTACTS: " + Contacts.getContacts());
                         return Contacts.getContacts();
-                    },
+                    }
                 }
             })
             .when("/new/contact", {
                 controller: "NewContactController",
                 templateUrl: "contact-form.html"
             })
-			.when("/new/user", {
-                controller: "NewUserController",
-                templateUrl: "user-form.html"
-            })
             .when("/contact/:contactId", {
                 controller: "EditContactController",
                 templateUrl: "contact.html"
+            })
+			.when("/login", {
+                controller: "loginController",
+                templateUrl: "login.html"
+            })
+			.when("/logout", {
+                controller: "logoutController",
+            })
+			.when("/register", {
+                controller: "registerController",
+				templateUrl: "register.html"
             })
             .otherwise({
                 redirectTo: "/"
@@ -75,24 +83,95 @@ angular.module('app', ['ngRoute'])
                 });
         }
     })
-	.service("Users", function($http) {
-        this.getContacts = function() {
-            return $http.get("/users").
-                then(function(response) {
-                    return response;
-                }, function(response) {
-                    alert("Error finding users.");
-                });
-        }
-        this.createContact = function(user) {
-            return $http.post("/users", user).
-                then(function(response) {
-                    return response;
-                }, function(response) {
-                    alert("Error creating user.");
-                });
-        }
-    })
+	.config(function ($httpProvider) {
+	  $httpProvider.interceptors.push('AuthInterceptor');
+	})
+	.constant('AUTH_EVENTS', {
+	  notAuthenticated: 'auth-not-authenticated'
+	})
+	.service('AuthService', function($q, $http) {
+	  var LOCAL_TOKEN_KEY = 'yourTokenKey';
+	  var isAuthenticated = false;
+	  var authToken;
+	 
+	  function loadUserCredentials() {
+		var token = window.localStorage.getItem(LOCAL_TOKEN_KEY);
+		if (token) {
+		  useCredentials(token);
+		}
+	  }
+	 
+	  function storeUserCredentials(token) {
+		window.localStorage.setItem(LOCAL_TOKEN_KEY, token);
+		useCredentials(token);
+	  }
+	 
+	  function useCredentials(token) {
+		isAuthenticated = true;
+		authToken = token;
+	 
+		// Set the token as header for your requests!
+		$http.defaults.headers.common.Authorization = authToken;
+	  }
+	 
+	  function destroyUserCredentials() {
+		authToken = undefined;
+		isAuthenticated = false;
+		$http.defaults.headers.common.Authorization = undefined;
+		window.localStorage.removeItem(LOCAL_TOKEN_KEY);
+	  }
+	 
+	  var register = function(user) {
+		return $q(function(resolve, reject) {
+		  $http.post('/signup', user).then(function(result) {
+			if (result.data.success) {
+			  resolve(result.data.msg);
+			  console.log("WIN");
+			} else {
+			  reject(result.data.msg);
+			  console.log("FAIL");
+			}
+		  });
+		});
+	  };
+	 
+	  var login = function(user) {
+		return $q(function(resolve, reject) {
+		  $http.post('/authenticate', user).then(function(result) {
+			if (result.data.success) {
+			  storeUserCredentials(result.data.token);
+			  resolve(result.data.msg);
+			} else {
+			  reject(result.data.msg);
+			}
+		  });
+		});
+	  };
+	 
+	  var logout = function() {
+		destroyUserCredentials();
+	  };
+	 
+	  loadUserCredentials();
+	 
+	  return {
+		login: login,
+		register: register,
+		logout: logout,
+		isAuthenticated: function() {return isAuthenticated;},
+	  };
+	})
+	 
+	.factory('AuthInterceptor', function ($rootScope, $q, AUTH_EVENTS) {
+	  return {
+		responseError: function (response) {
+		  $rootScope.$broadcast({
+			401: AUTH_EVENTS.notAuthenticated,
+		  }[response.status], response);
+		  return $q.reject(response);
+		}
+	  };
+	})
     .controller("ListController", function(contacts, $scope) {
         $scope.contacts = contacts.data;
     })
@@ -110,19 +189,57 @@ angular.module('app', ['ngRoute'])
             });
         }
     })
-	.controller("NewUserController", function($scope, $location, Users) {
+	.controller("registerController", function($scope, $location, AuthService) {
+        $scope.signup = function () {
+
+			AuthService.register($scope.user)
+			.then(function(msg) {
+			  $location.path("/");
+			}, function(errMsg) {
+			  $scope.errorMessage = "Invalid username and/or password";
+			});
+
+		};
+    })
+	.controller("loginController", function($scope, $location, AuthService) {
         $scope.back = function() {
             $location.path("#/");
         }
 
-        $scope.saveContact = function(user) {
-            Users.createContact(user).then(function(doc) {
-                var userUrl = "/user/" + doc.data._id;
-                $location.path(userUrl);
-            }, function(response) {
-                alert(response);
-            });
-        }
+        $scope.login = function () {
+
+		  // initial values
+		  $scope.error = false;
+		  $scope.disabled = true;
+
+		  // call login from service
+		  AuthService.login($scope.loginForm.username, $scope.loginForm.password)
+			// handle success
+			.then(function () {
+			  $location.path('/');
+			  $scope.disabled = false;
+			  $scope.loginForm = {};
+			})
+			// handle error
+			.catch(function () {
+			  $scope.error = true;
+			  $scope.errorMessage = "Invalid username and/or password";
+			  $scope.disabled = false;
+			  $scope.loginForm = {};
+			});
+
+		};
+    })
+	.controller("logoutController", function($scope, $location, AuthService) {
+        $scope.logout = function () {
+
+		  // call logout from service
+		  AuthService.logout()
+			.then(function () {
+			  $location.path('/login');
+			});
+
+		};
     })
     .controller("EditContactController", function($scope, $routeParams, Contacts) {
         Contacts.getContact($routeParams.contactId).then(function(doc) {
@@ -150,4 +267,5 @@ angular.module('app', ['ngRoute'])
         $scope.deleteContact = function(contactId) {
             Contacts.deleteContact(contactId);
         }
-    });
+    })
+	

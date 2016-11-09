@@ -1,0 +1,22 @@
+<div class="row">
+  <div class="col-md-6">
+      <h2>Register</h2>
+  </div>
+  <div ng-show="error" class="alert alert-danger">{{errorMessage}}</div>
+</div>
+<div class="container">
+  <div>
+    <p>
+      <label>Username (required)</label> 
+      <input id="name" class="form-control" type="text" ng-model="registerForm.name" required> 
+    </p>
+    <p>
+      <label>Password (required)</label> 
+      <input id="name" class="form-control" type="text" ng-model="registerForm.password" required> 
+    </p>
+    <p>
+      <button style="margin-top:20px" class="btn btn-default" ng-click="signup()">Save</button>
+      <button style="margin-top:20px" class="btn btn-default" ng-click="back()">Back</button>
+    </p>
+  </div>
+</div>
