@@ -32,11 +32,15 @@
         <div class="navbar-header">
           <div class="navbar-brand" href="#/">mLab Contact List</div>
         </div>
-        <div id="navbar" class="navbar-collapse collapse">
+        <div id="navbar" class="navbar-collapse collapse" ng-controller = "navController">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#/">Home</a></li>
-			<li class="active"><a href="#/login">Login</a></li>
-			<li class="active"><a href="#/register">Register</a></li>
+            <li ><a href="#/">Home</a></li>
+          </ul>
+		  <ul class="nav navbar-nav navbar-right">
+			<li ng-hide="loggedIn" ><a href="#/login">Login</a></li>
+			<li ng-show="loggedIn" ><a href="#/" ng-click = "logOut()">Logout</a></li>
+			<li ng-hide="loggedIn"><a href="#/register">Register</a></li>
+			<li ng-show="loggedIn"><a href="#/account">My Account</a></li>
           </ul>
         </div>
       </div>

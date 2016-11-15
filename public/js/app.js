@@ -24,9 +24,6 @@ angular.module('app', ['ngRoute'])
                 controller: "loginController",
                 templateUrl: "login.html"
             })
-			.when("/logout", {
-                controller: "logoutController",
-            })
 			.when("/register", {
                 controller: "registerController",
 				templateUrl: "register.html"
@@ -142,8 +139,10 @@ angular.module('app', ['ngRoute'])
 			if (result.data.success) {
 			  storeUserCredentials(result.data.token);
 			  resolve(result.data.msg);
+			  console.log("WIN");
 			} else {
 			  reject(result.data.msg);
+			  console.log("FAIL: " + result.data.msg);
 			}
 		  });
 		});
@@ -159,7 +158,7 @@ angular.module('app', ['ngRoute'])
 		login: login,
 		register: register,
 		logout: logout,
-		isAuthenticated: function() {return isAuthenticated;},
+		isAuthenticated: isAuthenticated,
 	  };
 	})
 	 
@@ -173,8 +172,17 @@ angular.module('app', ['ngRoute'])
 		}
 	  };
 	})
-    .controller("ListController", function(contacts, $scope) {
+    .controller("ListController", function(contacts, $scope, AuthService) {
         $scope.contacts = contacts.data;
+    })
+	.controller("navController", function($scope, $window, AuthService) {
+		$scope.$root.loggedIn = AuthService.isAuthenticated;
+		console.log($scope.$root.loggedIn);
+		$scope.logOut = function(){
+			AuthService.logout();
+			console.log(AuthService.isAuthenticated);
+			$window.location.reload();
+		}
     })
     .controller("NewContactController", function($scope, $location, Contacts) {
         $scope.back = function() {
@@ -194,9 +202,11 @@ angular.module('app', ['ngRoute'])
 		$scope.user = {
 			name: '',
 			password: ''
-		};
+		}
+		$scope.back = function() {
+            $location.path("#/");
+        }
         $scope.signup = function () {
-
 			AuthService.register($scope.user)
 			.then(function(msg) {
 			  $location.path("/");
@@ -206,45 +216,25 @@ angular.module('app', ['ngRoute'])
 
 		};
     })
-	.controller("loginController", function($scope, $location, AuthService) {
+	.controller("loginController", function($scope, $location, $window, AuthService) {
         $scope.back = function() {
             $location.path("#/");
         }
-
-        $scope.login = function () {
-
-		  // initial values
-		  $scope.error = false;
-		  $scope.disabled = true;
-
-		  // call login from service
-		  AuthService.login($scope.loginForm.username, $scope.loginForm.password)
-			// handle success
-			.then(function () {
-			  $location.path('/');
-			  $scope.disabled = false;
-			  $scope.loginForm = {};
-			})
-			// handle error
-			.catch(function () {
-			  $scope.error = true;
-			  $scope.errorMessage = "Invalid username and/or password";
-			  $scope.disabled = false;
-			  $scope.loginForm = {};
+		$scope.user = {
+			name: '',
+			password: ''
+		  };
+        $scope.login = function() {
+			AuthService.login($scope.user).then(function(msg) {
+			  $location.path("#/");
+			  console.log("LOGGED IN");
+			  $scope.$root.loggedIn = true;
+			}, function(errMsg) {
+			  //$location.path("#/");
+			  console.log("NOT LOGGED IN" + $scope.user.name);
 			});
-
-		};
-    })
-	.controller("logoutController", function($scope, $location, AuthService) {
-        $scope.logout = function () {
-
-		  // call logout from service
-		  AuthService.logout()
-			.then(function () {
-			  $location.path('/login');
-			});
-
-		};
+			//$window.location.reload();
+		  };
     })
     .controller("EditContactController", function($scope, $routeParams, Contacts) {
         Contacts.getContact($routeParams.contactId).then(function(doc) {

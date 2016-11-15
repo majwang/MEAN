@@ -142,9 +142,10 @@ apiRoutes.post('/authenticate', function(req, res) {
   User.findOne({
     name: req.body.name
   }, function(err, user) {
-    if (err) throw err;
+    if (err) {throw err;console.log("ERRORRRR");}
  
     if (!user) {
+		console.log("!USER, " + req.body.name);
       res.send({success: false, msg: 'Authentication failed. User not found.'});
     } else {
       // check if password matches
