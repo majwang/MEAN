@@ -28,6 +28,10 @@ angular.module('app', ['ngRoute'])
                 controller: "registerController",
 				templateUrl: "register.html"
             })
+			.when("/account", {
+                controller: "accountController",
+				templateUrl: "user.html"
+            })
             .otherwise({
                 redirectTo: "/"
             })
@@ -38,7 +42,7 @@ angular.module('app', ['ngRoute'])
                 then(function(response) {
                     return response;
                 }, function(response) {
-                    alert("Error finding contacts.");
+                    //alert("Error finding contacts.");
                 });
         }
         this.createContact = function(contact) {
@@ -46,7 +50,7 @@ angular.module('app', ['ngRoute'])
                 then(function(response) {
                     return response;
                 }, function(response) {
-                    alert("Error creating contact.");
+                    //alert("Error creating contact.");
                 });
         }
         this.getContact = function(contactId) {
@@ -55,7 +59,7 @@ angular.module('app', ['ngRoute'])
                 then(function(response) {
                     return response;
                 }, function(response) {
-                    alert("Error finding this contact.");
+                    //alert("Error finding this contact.");
                 });
         }
         this.editContact = function(contact) {
@@ -65,7 +69,7 @@ angular.module('app', ['ngRoute'])
                 then(function(response) {
                     return response;
                 }, function(response) {
-                    alert("Error editing this contact.");
+                    //alert("Error editing this contact.");
                     console.log(response);
                 });
         }
@@ -75,7 +79,7 @@ angular.module('app', ['ngRoute'])
                 then(function(response) {
                     return response;
                 }, function(response) {
-                    alert("Error deleting this contact.");
+                    //alert("Error deleting this contact.");
                     console.log(response);
                 });
         }
@@ -84,22 +88,24 @@ angular.module('app', ['ngRoute'])
 	  $httpProvider.interceptors.push('AuthInterceptor');
 	})
 	.constant('AUTH_EVENTS', {
-	  notAuthenticated: 'auth-not-authenticated'
+	  notAuthenticated: 'auth-not-authenticated',
 	})
 	.service('AuthService', function($q, $http) {
 	  var LOCAL_TOKEN_KEY = 'devdacticIsAwesome';
 	  var isAuthenticated = false;
 	  var authToken;
-	 
+	  var name = '';
 	  function loadUserCredentials() {
 		var token = window.localStorage.getItem(LOCAL_TOKEN_KEY);
+		name = window.localStorage.getItem(name);
 		if (token) {
 		  useCredentials(token);
 		}
 	  }
 	 
-	  function storeUserCredentials(token) {
+	  function storeUserCredentials(token,n) {
 		window.localStorage.setItem(LOCAL_TOKEN_KEY, token);
+		window.localStorage.setItem(name, n);
 		useCredentials(token);
 		console.log(token);
 	  }
@@ -117,6 +123,7 @@ angular.module('app', ['ngRoute'])
 		isAuthenticated = false;
 		$http.defaults.headers.common.Authorization = undefined;
 		window.localStorage.removeItem(LOCAL_TOKEN_KEY);
+		window.localStorage.removeItem(name);
 	  }
 	 
 	  var register = function(user) {
@@ -124,10 +131,10 @@ angular.module('app', ['ngRoute'])
 		  $http.post('/signup', user).then(function(result) {
 			if (result.data.success) {
 			  resolve(result.data.msg);
-			  console.log("WIN");
+			  alert("Logged In.");
 			} else {
 			  reject(result.data.msg);
-			  console.log("FAIL");
+			  alert("Error with Login");
 			}
 		  });
 		});
@@ -137,9 +144,9 @@ angular.module('app', ['ngRoute'])
 		return $q(function(resolve, reject) {
 		  $http.post('/authenticate', user).then(function(result) {
 			if (result.data.success) {
-			  storeUserCredentials(result.data.token);
+			  storeUserCredentials(result.data.token, user.name);
 			  resolve(result.data.msg);
-			  console.log("WIN");
+			  console.log("WIN " + user.name);
 			} else {
 			  reject(result.data.msg);
 			  console.log("FAIL: " + result.data.msg);
@@ -147,18 +154,33 @@ angular.module('app', ['ngRoute'])
 		  });
 		});
 	  };
-	 
+	  var save = function(user){
+		  console.log("trying ot save");
+		return $q(function(resolve, reject) {
+		  $http.post('/changeinfo', user).then(function(result) {
+			if (result.data.success) {
+			  resolve(result.data.msg);
+			  alert("Logged In.");
+			} else {
+			  reject(result.data.msg);
+			  alert("Error with Login");
+			}
+		  });
+		});
+	  };
+
 	  var logout = function() {
 		destroyUserCredentials();
 	  };
 	 
 	  loadUserCredentials();
-	 
 	  return {
 		login: login,
 		register: register,
 		logout: logout,
+		save: save,
 		isAuthenticated: isAuthenticated,
+		name, name
 	  };
 	})
 	 
@@ -175,9 +197,45 @@ angular.module('app', ['ngRoute'])
     .controller("ListController", function(contacts, $scope, AuthService) {
         $scope.contacts = contacts.data;
     })
+	.controller("accountController", function($scope, AuthService, $http, $window,$q, $location) {
+        $scope.name;
+		$scope.newpassword = 0;
+		var request = $http.get('/memberinfo').then(function(result) {
+		  $scope.memberinfo = result.data.msg;
+		  //console.log(result.data.user.name);
+		});
+		$scope.user = {
+				name: AuthService.name,
+				password: ''
+			}
+		//console.log($scope.user);
+		$scope.edit = false;
+		$scope.change = function(){
+			$scope.edit = true;
+		}
+		$scope.back = function(){
+			$scope.edit = false;
+		}
+		$scope.save = function(){
+			
+			console.log("USER STUFF " + $scope.user.password);
+			//if($scope.newpassword = $scope.userObj.password){
+				AuthService.save($scope.user)
+				.then(function(msg) {
+				  $window.alert("New Password Saved");
+				  $location.path("/account");
+				}, function(errMsg) {
+				  $window.alert(errMsg);
+				});
+				$window.alert("New Password Saved");
+				  $location.path("/");
+			//}
+			//else $window.alert("Old password does not match");
+		}
+    })
 	.controller("navController", function($scope, $window, AuthService) {
 		$scope.$root.loggedIn = AuthService.isAuthenticated;
-		console.log($scope.$root.loggedIn);
+		//console.log($scope.$root.loggedIn);
 		$scope.logOut = function(){
 			AuthService.logout();
 			console.log(AuthService.isAuthenticated);
@@ -228,13 +286,16 @@ angular.module('app', ['ngRoute'])
 			AuthService.login($scope.user).then(function(msg) {
 			  $location.path("#/");
 			  console.log("LOGGED IN");
+			  $window.alert("Logged In");
 			  $scope.$root.loggedIn = true;
 			}, function(errMsg) {
 			  //$location.path("#/");
-			  console.log("NOT LOGGED IN" + $scope.user.name);
+			  console.log("NOT LOGGED IN");
+			  $window.alert("Error Logging In");
 			});
 			//$window.location.reload();
 		  };
+		  
     })
     .controller("EditContactController", function($scope, $routeParams, Contacts) {
         Contacts.getContact($routeParams.contactId).then(function(doc) {

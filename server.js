@@ -34,6 +34,7 @@ app.use(serveStatic(__dirname, {'index': ['public/index.html']}))
 //});
 var db;
 // connect to database process.env.MONGODB_URI
+mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGODB_URI);
 mongoose.connection.on('connected', function(err, database) {
   if (err) {
@@ -176,12 +177,30 @@ apiRoutes.get('/memberinfo', passport.authenticate('jwt', { session: false}), fu
         if (!user) {
           return res.status(403).send({success: false, msg: 'Authentication failed. User not found.'});
         } else {
-          res.json({success: true, msg: 'Welcome in the member area ' + user.name + '!'});
+          res.json({success: true, msg: 'Welcome in the member area ' + user.name + '!', user: user});
         }
     });
   } else {
     return res.status(403).send({success: false, msg: 'No token provided.'});
   }
+});
+apiRoutes.post('/changeinfo', function(req, res) {
+    User.findOne({
+       name: req.body.name
+    }, function(err, user) {
+        if (err) {throw err;}
+		console.log(req.body.name);
+        if (!user) {
+          return res.status(403).send({success: false, msg: 'User not found.'});
+        } else {
+		  //console.log("HERE" + req.body.password);
+		  user.password = req.body.password;
+		  user.save(function(err){ //...save
+				if(err) throw err;
+				else{console.log("worked");}
+		  });
+        }
+    });
 });
  
 function getToken (headers) {
