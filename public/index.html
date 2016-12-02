@@ -13,6 +13,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.6/angular.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.6/angular-route.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.7/angular-resource.js"></script>
+	<script src="/scripts/ngmap/build/scripts/ng-map.min.js"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7J9VyS6H8Y5GYAWn7_WyyugqhHuPeoYU"></script>
 	<script src="js/app.js"></script>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
@@ -22,11 +24,14 @@
         min-height: 2000px;
         padding-top: 70px;
       }
+	  .ng-scope {
+		  height: 100%;
+		}
     </style>
 
   </head>
 
-  <body>
+  <body style="height:100%">
     <nav class="navbar navbar-default navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -35,18 +40,20 @@
         <div id="navbar" class="navbar-collapse collapse" ng-controller = "navController">
           <ul class="nav navbar-nav">
             <li ><a href="#/">Home</a></li>
+			<li ><a href="#/map">Map</a></li>
           </ul>
 		  <ul class="nav navbar-nav navbar-right">
 			<li ng-hide="loggedIn" ><a href="#/login">Login</a></li>
 			<li ng-show="loggedIn" ><a href="#/" ng-click = "logOut()">Logout</a></li>
 			<li ng-hide="loggedIn"><a href="#/register">Register</a></li>
 			<li ng-show="loggedIn"><a href="#/account">My Account</a></li>
+
           </ul>
         </div>
       </div>
     </nav>
     <!-- Dynamically render templates -->
-    <div class="container" ng-view>
+    <div class="container-fluid" ng-view style="height:100%">
     </div>
   </body>
 </html>

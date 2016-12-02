@@ -11,7 +11,7 @@ var jwt         = require('jwt-simple');
 var Contact = require('./app/models/contact');
 var path = require("path");
 var ObjectID = mongoose.ObjectID;
- 
+
 // log to console
 app.use(morgan('dev'));
  
@@ -19,6 +19,7 @@ app.use(morgan('dev'));
 app.use(passport.initialize());
 
 app.use(express.static(__dirname + '/public'));
+app.use('/scripts', express.static(__dirname + '/node_modules/'));
 // get our request parameters
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());

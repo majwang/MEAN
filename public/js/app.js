@@ -1,5 +1,5 @@
 
-angular.module('app', ['ngRoute'])
+angular.module('app', ['ngRoute', 'ngMap'])
     .config(function($routeProvider) {
         $routeProvider
             .when("/", {
@@ -31,6 +31,10 @@ angular.module('app', ['ngRoute'])
 			.when("/account", {
                 controller: "accountController",
 				templateUrl: "user.html"
+            })
+			.when("/map", {
+                controller: "mapController",
+				templateUrl: "map.html"
             })
             .otherwise({
                 redirectTo: "/"
@@ -196,6 +200,14 @@ angular.module('app', ['ngRoute'])
 	})
     .controller("ListController", function(contacts, $scope, AuthService) {
         $scope.contacts = contacts.data;
+    })
+	.controller("mapController", function($scope, AuthService, NgMap) {
+		$scope.googleMapsUrl="https://maps.googleapis.com/maps/api/js?key=AIzaSyA7J9VyS6H8Y5GYAWn7_WyyugqhHuPeoYU";
+        NgMap.getMap().then(function(map) {
+		console.log(map.getCenter());
+		console.log('markers', map.markers);
+		console.log('shapes', map.shapes);
+	    });
     })
 	.controller("accountController", function($scope, AuthService, $http, $window,$q, $location) {
         $scope.name;
